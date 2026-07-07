@@ -1,4 +1,3 @@
-<!-- redeploy test -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -87,6 +86,17 @@
     text-align:center;cursor:pointer;user-select:none;}
   .tgl.active{color:var(--text);border-color:var(--text-dim);font-weight:600;}
 
+  /* ---------- calibration ---------- */
+  #cal{display:none;background:var(--surface);border:1px solid var(--line);
+    border-radius:10px;padding:4px 14px 8px;margin-bottom:14px;}
+  #cal.on{display:block;}
+  #cal summary{font-size:13px;color:var(--text-dim);padding:8px 0;cursor:pointer;
+    list-style-position:inside;}
+  #cal label{display:block;font-size:12.5px;color:var(--text-dim);margin:4px 0 12px;}
+  #cal output{float:right;color:var(--text);
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  #cal input[type=range]{width:100%;accent-color:var(--text);margin-top:6px;height:24px;}
+
   footer{font-size:11.5px;color:var(--text-dim);line-height:1.7;padding:4px 2px;}
   .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 3px 0 8px;vertical-align:-1px;}
   @media (prefers-reduced-motion:no-preference){
@@ -141,6 +151,16 @@
   <div class="tgl active" data-k="skeleton">骨格</div>
   <div class="tgl active" data-k="center">中定線</div>
 </div>
+
+<details id="cal">
+  <summary>調整 — 肩窩・胯の基準点</summary>
+  <label>肩点の内寄せ(肩窩へ) <output id="vShIn">12%</output>
+    <input type="range" id="shIn" min="0" max="30" value="12"></label>
+  <label>胯点の内寄せ(骨盤の奥へ) <output id="vKuaIn">22%</output>
+    <input type="range" id="kuaIn" min="0" max="40" value="22"></label>
+  <label>胯点の沈み <output id="vKuaDown">5%</output>
+    <input type="range" id="kuaDown" min="0" max="12" value="5"></label>
+</details>
 
 <footer>
   線の色は目安です<span class="legend"><i style="background:var(--good)"></i>揃う<i style="background:var(--mid)"></i>注意<i style="background:var(--bad)"></i>大きなズレ</span>。
@@ -235,6 +255,7 @@ video.addEventListener("loadedmetadata", () => {
   chipsEl.classList.add("on");
   $("transport").classList.add("on");
   $("toggles").classList.add("on");
+  $("cal").classList.add("on");
   seekDetect();
 });
 $("reload").addEventListener("click", () => {
@@ -275,8 +296,29 @@ function torsoLen() {
   const h = midpoint(px(lm[IDX.left.hip]),      px(lm[IDX.right.hip]));
   return Math.max(1, Math.hypot(s[0]-h[0], s[1]-h[1]));
 }
+/* 肩窩・胯(股関節の奥)を近似する補正点 */
+function loadCal() {
+  const d = { shIn:0.12, kuaIn:0.22, kuaDown:0.05 };
+  try { return Object.assign(d, JSON.parse(localStorage.getItem("sangokyo-cal")||"{}")); }
+  catch { return d; }
+}
+const cal = loadCal();
+function saveCal() {
+  try { localStorage.setItem("sangokyo-cal", JSON.stringify(cal)); } catch {}
+}
+function pairPoints(side, p) {
+  let a = px(lm[IDX[side][p.a]]), b = px(lm[IDX[side][p.b]]);
+  if (p.key === "sh") {
+    const ms = midpoint(px(lm[IDX.left.shoulder]), px(lm[IDX.right.shoulder]));
+    const mh = midpoint(px(lm[IDX.left.hip]),      px(lm[IDX.right.hip]));
+    const t = torsoLen();
+    a = [ a[0] + (ms[0]-a[0])*cal.shIn,  a[1] + (ms[1]-a[1])*cal.shIn ];
+    b = [ b[0] + (mh[0]-b[0])*cal.kuaIn, b[1] + (mh[1]-b[1])*cal.kuaIn + t*cal.kuaDown ];
+  }
+  return [a, b];
+}
 function pairRatio(side, p) {
-  const a = px(lm[IDX[side][p.a]]), b = px(lm[IDX[side][p.b]]);
+  const [a, b] = pairPoints(side, p);
   return Math.abs(a[0]-b[0]) / torsoLen();
 }
 const ratioColor = r => r < TH_GOOD ? C.good : r < TH_MID ? C.mid : C.bad;
@@ -319,7 +361,7 @@ function draw() {
   for (const side of ["left","right"]) {
     if (!state[side]) continue;
     for (const p of PAIRS) {
-      const a = px(lm[IDX[side][p.a]]), b = px(lm[IDX[side][p.b]]);
+      const [a, b] = pairPoints(side, p);
       const col = ratioColor(pairRatio(side,p));
       ctx.strokeStyle = col; ctx.lineWidth = w*1.8;
       ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
@@ -397,6 +439,18 @@ $("toggles").addEventListener("click", e => {
   t.classList.toggle("active", state[k]);
   draw(); updateChips();
 });
+
+/* ---- calibration sliders ---- */
+for (const [k, out] of [["shIn","vShIn"],["kuaIn","vKuaIn"],["kuaDown","vKuaDown"]]) {
+  const el = $(k);
+  el.value = Math.round(cal[k]*100);
+  $(out).textContent = el.value + "%";
+  el.addEventListener("input", () => {
+    cal[k] = el.value / 100;
+    $(out).textContent = el.value + "%";
+    saveCal(); draw(); updateChips();
+  });
+}
 </script>
 </body>
 </html>
