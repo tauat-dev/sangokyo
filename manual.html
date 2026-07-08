@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>三合鏡 かんたんマニュアル</title>
+<style>
+  :root{
+    --ink:#15171b; --surface:#1e2127; --line:#2c3038;
+    --text:#ece7db; --text-dim:#9a958a; --seal:#b8503c;
+    --good:#5ec98f; --mid:#e0b74a; --bad:#e2654f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--ink);color:var(--text);
+    font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
+    font-size:15px;line-height:1.85;}
+  body{max-width:640px;margin:0 auto;padding:16px 16px 48px;}
+  header{display:flex;align-items:center;gap:12px;padding:6px 2px 8px;}
+  .seal{width:34px;height:34px;flex:none;border-radius:6px;background:var(--seal);
+    color:#f5efe2;display:grid;place-items:center;
+    font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-size:19px;font-weight:600;}
+  h1{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
+    font-size:21px;font-weight:600;letter-spacing:.12em;}
+  .lead{color:var(--text-dim);font-size:13px;margin-bottom:26px;}
+  h2{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
+    font-size:17px;letter-spacing:.1em;margin:34px 0 10px;
+    padding-left:12px;border-left:2px solid var(--seal);}
+  p{margin-bottom:12px;}
+  .note{background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;font-size:13.5px;color:var(--text-dim);margin:14px 0;}
+  .note b{color:var(--text);}
+  i.dot{display:inline-block;width:10px;height:10px;border-radius:50%;
+    margin:0 4px -1px 2px;}
+  figure{margin:16px 0 20px;}
+  figure img{width:100%;border-radius:10px;border:1px solid var(--line);display:block;}
+  figure.missing img{display:none;}
+  figure .ph{display:none;border:1px dashed var(--line);border-radius:10px;
+    padding:34px 16px;text-align:center;color:var(--text-dim);font-size:13px;
+    background:var(--surface);}
+  figure.missing .ph{display:block;}
+  figcaption{font-size:12px;color:var(--text-dim);margin-top:6px;text-align:center;}
+  .kbd{display:inline-block;background:var(--surface);border:1px solid var(--line);
+    border-radius:6px;padding:0 8px;font-size:13px;}
+  footer{margin-top:44px;font-size:12px;color:var(--text-dim);
+    border-top:1px solid var(--line);padding-top:14px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="seal">合</div>
+  <h1>三合鏡 かんたんマニュアル</h1>
+</header>
+<p class="lead">スマホで撮った套路の動画に、AIが外三合の線を重ねて映す鏡です。アプリのインストールは不要、ブラウザで開くだけ。<b>動画はスマホの外に送信されません。</b>無料です。</p>
+
+<h2>1. はじめる</h2>
+<p>共有されたURLをスマホのブラウザ(SafariやChrome)で開き、「練習動画を選ぶ」から套路を撮った動画を選びます。初回だけAIの読み込みに数秒かかります。よく使うなら「ホーム画面に追加」しておくとアプリのように開けます。</p>
+<figure>
+  <img src="manual-01.png" alt="動画を選ぶ画面" onerror="this.parentElement.classList.add('missing')">
+  <div class="ph">スクショ①<br>最初の画面(「練習動画を選ぶ」ボタンが見える状態)</div>
+  <figcaption>① 開いて動画を選ぶだけ</figcaption>
+</figure>
+
+<h2>2. 線の見かた</h2>
+<p>動画の上に重なる色付きの線が外三合の三つのペアです。<b>肩胯</b>(肩窩と股関節の奥)、<b>肘膝</b>、<b>手足</b>。それぞれ左右にあります。点線は<b>中定線</b>(肩の中点と胯の中点を結んだ垂線)で、立身中正の目安です。</p>
+<p>色の意味: <i class="dot" style="background:var(--good)"></i>緑=揃っている <i class="dot" style="background:var(--mid)"></i>黄=注意 <i class="dot" style="background:var(--bad)"></i>赤=大きなズレ。</p>
+<figure>
+  <img src="manual-02.png" alt="解析中の画面" onerror="this.parentElement.classList.add('missing')">
+  <div class="ph">スクショ②<br>套路に線が重なっている画面(緑〜黄が混ざる瞬間だと説明しやすい)</div>
+  <figcaption>② 外三合の線と中定線</figcaption>
+</figure>
+<p>動画の下の小さなカードの数値は、ペアの2点が左右方向にどれだけ離れているかを<b>自分の胴の長さに対する割合</b>で表したものです。0.30なら「胴の3割ぶんズレている」。体格や撮影距離が違っても比べられる物差しです。</p>
+
+<h2>3. 操作</h2>
+<p>シークバーで好きな場面へ飛べます。<span class="kbd">0.5×</span> <span class="kbd">0.25×</span>のスロー再生と、<span class="kbd">−1コマ</span> <span class="kbd">＋1コマ</span>のコマ送りが主役です。鏡では絶対に見えない「弓歩から後坐へ移る一瞬」を止めて観察できます。左側・右側・骨格・中定線の表示は個別にオンオフできます。</p>
+<figure>
+  <img src="manual-03.png" alt="操作パネル" onerror="this.parentElement.classList.add('missing')">
+  <div class="ph">スクショ③<br>シークバー・コマ送り・速度・表示切替が写った操作部分</div>
+  <figcaption>③ スローとコマ送りが主役</figcaption>
+</figure>
+
+<h2>4. 比較モード</h2>
+<p>上部の「比較(2画面)」タブで、二つの動画を縦に並べられます。先生の動画と自分の動画をそれぞれ読み込み、<b>それぞれ独立にコマ送りして同じ姿勢で止めて</b>、線の色と数値を見比べます。</p>
+<figure>
+  <img src="manual-04.png" alt="比較モード" onerror="this.parentElement.classList.add('missing')">
+  <div class="ph">スクショ④<br>比較モードで2本の動画が並んでいる画面</div>
+  <figcaption>④ 同じ姿勢で止めて見比べる</figcaption>
+</figure>
+<div class="note"><b>先生の動画を使うときは、撮影と利用の許可をきちんと。</b>解析はすべて自分の端末内で行われ、動画がどこかに送られることはありません。</div>
+
+<h2>5. 調整パネル</h2>
+<p>調整は2つに分かれています。<b>「基準点(肩窩・胯)」</b>は肩窩・胯の位置合わせの3本。おすすめの手順: 正面から水平に撮った動画で、<b>自分の感覚で確かに坐胯できているコマ</b>を止めて表示し、点が身体感覚の場所と重なるまで動かします。設定は自分の端末に保存されます。</p>
+<p><b>「判定のしきい値(胴長比)」</b>は色の境目の2本。単体モードでは動画が画面上部に貼り付いたまま残るので、スライダーを動かすと線の色がその場で変わるのを見ながら調整できます。<b>ここが皆さんの出番</b>——実際の套路で「この場面は緑であってほしい/これは黄だろう」という感覚に合う値を探して、ぜひ教えてください。集まった値がこの道具の物差しを育てます。</p>
+<figure>
+  <img src="manual-05.png" alt="調整パネル" onerror="this.parentElement.classList.add('missing')">
+  <div class="ph">スクショ⑤<br>調整パネルを開いた状態(スライダー5本)</div>
+  <figcaption>⑤ 基準点の校正と、しきい値の調整</figcaption>
+</figure>
+
+<h2>6. 撮影のコツ</h2>
+<p>全身(足先から頭まで)が常に画面に入るように。明るい場所で、服と背景の色が違うほど点が安定します。<b>正面から</b>撮ると左右の揃いと中定が、<b>真横から</b>撮ると肘膝の前後の対応が読みやすくなります。数値を比べるときは、同じ角度で撮った動画同士で。</p>
+
+<h2>7. この鏡が映さないもの</h2>
+<p>AIの点は映像からの推定であり、映すのは体の外側(外三合と功架)だけです。内三合——心と意、意と気、気と力の連動——はカメラには映りません。線が全部緑でも、それが太極拳として正しいかどうかを決めるのは、この鏡ではなく老師と稽古です。道具は道具として、気楽に使ってください。</p>
+
+<footer>三合鏡 — 外三合を映す鏡 · 個人の稽古用ツール · 動画は端末外に送信されません</footer>
+</body>
+</html>
