@@ -55,15 +55,22 @@
   .stage.on{display:block;}
   .stage video{display:block;width:100%;height:auto;}
   .stage canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  #singleHost .stage.on{position:sticky;top:8px;z-index:5;
+    box-shadow:0 8px 20px rgba(0,0,0,.5);}
 
-  .chips{display:none;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+  .chips{display:none;gap:8px;margin-bottom:10px;}
   .chips.on{display:flex;}
-  .chip{flex:1;min-width:76px;background:var(--surface);border:1px solid var(--line);
-    border-radius:9px;padding:5px 6px;text-align:center;}
-  .chip .side{font-size:10px;color:var(--text-dim);letter-spacing:.08em;}
-  .chip .val{font-size:13px;font-weight:600;}
-  .chip .dot{display:inline-block;width:8px;height:8px;border-radius:50%;
-    margin-right:4px;background:var(--text-dim);vertical-align:1px;}
+  .chipgrp{flex:1;min-width:0;}
+  .chipgrp .glabel{font-size:10px;color:var(--text-dim);letter-spacing:.3em;
+    text-align:center;margin-bottom:3px;}
+  .chipgrp .grow{display:flex;gap:4px;}
+  .chip{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);
+    border-radius:9px;padding:4px 2px;text-align:center;}
+  .chip .lab{font-size:11px;color:var(--text);white-space:nowrap;}
+  .chip .num{font-size:12.5px;font-weight:600;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  .chip .dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+    margin-right:3px;background:var(--text-dim);vertical-align:0;}
 
   .transport{display:none;}
   .transport.on{display:block;}
@@ -83,16 +90,14 @@
     text-align:center;cursor:pointer;user-select:none;}
   .tgl.active{color:var(--text);border-color:var(--text-dim);font-weight:600;}
 
-  #cal{background:var(--surface);border:1px solid var(--line);
-    border-radius:10px;padding:4px 14px 8px;margin-bottom:14px;}
-  #cal summary{font-size:13px;color:var(--text-dim);padding:8px 0;cursor:pointer;
+  .calbox{background:var(--surface);border:1px solid var(--line);
+    border-radius:10px;padding:4px 14px 8px;margin-bottom:10px;}
+  .calbox summary{font-size:13px;color:var(--text-dim);padding:8px 0;cursor:pointer;
     list-style-position:inside;}
-  #cal label{display:block;font-size:12.5px;color:var(--text-dim);margin:4px 0 12px;}
-  #cal output{float:right;color:var(--text);
+  .calbox label{display:block;font-size:12.5px;color:var(--text-dim);margin:4px 0 12px;}
+  .calbox output{float:right;color:var(--text);
     font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
-  #cal input[type=range]{width:100%;accent-color:var(--text);margin-top:6px;height:24px;}
-  #cal .cal-h{font-size:11px;color:var(--text-dim);letter-spacing:.1em;
-    border-top:1px solid var(--line);padding-top:10px;margin-bottom:6px;}
+  .calbox input[type=range]{width:100%;accent-color:var(--text);margin-top:6px;height:24px;}
 
   footer{font-size:11.5px;color:var(--text-dim);line-height:1.7;padding:4px 2px;}
   .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 3px 0 8px;vertical-align:-1px;}
@@ -104,7 +109,7 @@
   <div class="seal">合</div>
   <div class="title-block">
     <h1>三合鏡</h1>
-    <div class="subtitle">外三合を確認してみる — 肩胯・肘膝・手足</div>
+    <div class="subtitle">外三合を映す鏡 — 肩胯・肘膝・手足</div>
   </div>
 </header>
 
@@ -130,15 +135,17 @@
     <div class="tgl active" data-k="skeleton">骨格</div>
     <div class="tgl active" data-k="center">中定線</div>
   </div>
-  <details id="cal">
-    <summary>調整 — 基準点としきい値</summary>
+  <details class="calbox">
+    <summary>調整 — 基準点(肩窩・胯)</summary>
     <label>肩点の内寄せ(肩窩へ) <output id="vShIn"></output>
       <input type="range" id="shIn" min="0" max="30"></label>
     <label>胯点の内寄せ(骨盤の奥へ) <output id="vKuaIn"></output>
       <input type="range" id="kuaIn" min="0" max="40"></label>
     <label>胯点の沈み <output id="vKuaDown"></output>
       <input type="range" id="kuaDown" min="0" max="12"></label>
-    <div class="cal-h">判定のしきい値(胴長比)</div>
+  </details>
+  <details class="calbox">
+    <summary>調整 — 判定のしきい値(胴長比)</summary>
     <label>緑↔黄の境 <output id="vThGood"></output>
       <input type="range" id="thGood" min="10" max="60"></label>
     <label>黄↔赤の境 <output id="vThMid"></output>
@@ -319,15 +326,23 @@ function createPlayer(host, label, modelKind) {
   const seek = q(".seek"), tcur = q(".tcur"), tdur = q(".tdur");
   const playBtn = q(".play"), statusEl = q(".pstatus");
 
-  /* chips */
-  const chipsEl = q(".chips"), chipRefs = {};
-  for (const side of ["left","right"]) for (const p of PAIRS) {
-    const el = document.createElement("div");
-    el.className = "chip";
-    el.innerHTML = `<div class="side">${side==="left"?"左":"右"}</div>
-      <div class="val"><span class="dot"></span>${p.label} <span class="num">—</span></div>`;
-    chipsEl.appendChild(el);
-    chipRefs[side+p.key] = { el, dot: el.querySelector(".dot"), num: el.querySelector(".num") };
+  /* chips: 左/右のグループに3対ずつ */
+  const chipsEl = q(".chips"), chipRefs = {}, grpRefs = {};
+  for (const side of ["left","right"]) {
+    const grp = document.createElement("div");
+    grp.className = "chipgrp";
+    grp.innerHTML = `<div class="glabel">${side==="left"?"左":"右"}</div><div class="grow"></div>`;
+    const row = grp.querySelector(".grow");
+    for (const p of PAIRS) {
+      const el = document.createElement("div");
+      el.className = "chip";
+      el.innerHTML = `<div class="lab"><span class="dot"></span>${p.label}</div>
+        <div class="num">—</div>`;
+      row.appendChild(el);
+      chipRefs[side+p.key] = { dot: el.querySelector(".dot"), num: el.querySelector(".num") };
+    }
+    chipsEl.appendChild(grp);
+    grpRefs[side] = grp;
   }
 
   const P = { video, landmarker:null, ready:false, lm:null, scrubbing:false };
@@ -347,13 +362,15 @@ function createPlayer(host, label, modelKind) {
   }
 
   function updateChips() {
-    for (const side of ["left","right"]) for (const p of PAIRS) {
-      const ref = chipRefs[side+p.key];
-      ref.el.style.opacity = state[side] ? 1 : .3;
-      if (!P.lm) { ref.num.textContent = "—"; ref.dot.style.background = "var(--text-dim)"; continue; }
-      const r = pairRatio(P.lm, canvas.width, canvas.height, side, p);
-      ref.num.textContent = r.toFixed(2);
-      ref.dot.style.background = ratioColor(r);
+    for (const side of ["left","right"]) {
+      grpRefs[side].style.opacity = state[side] ? 1 : .3;
+      for (const p of PAIRS) {
+        const ref = chipRefs[side+p.key];
+        if (!P.lm) { ref.num.textContent = "—"; ref.dot.style.background = "var(--text-dim)"; continue; }
+        const r = pairRatio(P.lm, canvas.width, canvas.height, side, p);
+        ref.num.textContent = r.toFixed(2);
+        ref.dot.style.background = ratioColor(r);
+      }
     }
   }
   function redraw() {
