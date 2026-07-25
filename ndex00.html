@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>三合鏡 — 外三合ビューア</title>
+<style>
+  :root{
+    --ink:#15171b;
+    --surface:#1e2127;
+    --line:#2c3038;
+    --text:#ece7db;
+    --text-dim:#9a958a;
+    --seal:#b8503c;
+    --good:#5ec98f;
+    --mid:#e0b74a;
+    --bad:#e2654f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{background:var(--ink);color:var(--text);
+    font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
+    font-size:15px;line-height:1.6;}
+  body{max-width:640px;margin:0 auto;padding:14px 14px calc(20px + env(safe-area-inset-bottom));}
+
+  header{display:flex;align-items:center;gap:12px;padding:6px 2px 14px;}
+  .seal{width:34px;height:34px;flex:none;border-radius:6px;background:var(--seal);
+    color:#f5efe2;display:grid;place-items:center;
+    font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-size:19px;font-weight:600;}
+  .title-block{position:relative;padding-left:14px;}
+  .title-block::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:1px;
+    background:linear-gradient(var(--text-dim),transparent);}
+  h1{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
+    font-size:22px;font-weight:600;letter-spacing:.14em;}
+  .subtitle{font-size:11.5px;color:var(--text-dim);letter-spacing:.06em;}
+
+  .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .seg button{flex:1;background:var(--surface);border:none;color:var(--text-dim);
+    padding:11px 0;font-size:14px;cursor:pointer;}
+  .seg button.active{background:var(--text);color:var(--ink);font-weight:700;}
+  #modeSeg{margin-bottom:14px;}
+
+  .pane{margin-bottom:16px;}
+  .plabel{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-size:13px;
+    color:var(--text-dim);letter-spacing:.2em;margin:0 2px 6px;}
+
+  .psetup{border:1px dashed var(--line);border-radius:12px;padding:22px 16px;
+    text-align:center;background:var(--surface);}
+  .pstatus{color:var(--text-dim);font-size:13px;margin-bottom:12px;min-height:1.4em;}
+  .file-btn{display:inline-block;background:var(--text);color:var(--ink);
+    border:none;border-radius:10px;padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;}
+  .file{display:none;}
+
+  .stage{display:none;position:relative;border-radius:12px;overflow:hidden;
+    background:#000;margin-bottom:10px;}
+  .stage.on{display:block;}
+  .stage video{display:block;width:100%;height:auto;}
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  #singleHost .stage.on{position:sticky;top:8px;z-index:5;
+    box-shadow:0 8px 20px rgba(0,0,0,.5);}
+
+  .chips{display:none;gap:8px;margin-bottom:10px;}
+  .chips.on{display:flex;}
+  .chipgrp{flex:1;min-width:0;}
+  .chipgrp .glabel{font-size:10px;color:var(--text-dim);letter-spacing:.3em;
+    text-align:center;margin-bottom:3px;}
+  .chipgrp .grow{display:flex;gap:4px;}
+  .chip{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);
+    border-radius:9px;padding:4px 2px;text-align:center;}
+  .chip .lab{font-size:11px;color:var(--text);white-space:nowrap;}
+  .chip .num{font-size:12.5px;font-weight:600;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  .chip .dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+    margin-right:3px;background:var(--text-dim);vertical-align:0;}
+
+  .transport{display:none;}
+  .transport.on{display:block;}
+  .seek{width:100%;accent-color:var(--text);height:26px;}
+  .timecode{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:12px;color:var(--text-dim);text-align:center;margin:2px 0 8px;}
+  .row{display:flex;gap:8px;justify-content:center;align-items:center;margin-bottom:10px;}
+  .ctl{background:var(--surface);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;font-size:14px;padding:10px 0;flex:1;cursor:pointer;}
+  .ctl:active{background:var(--line);}
+  .ctl.play{flex:1.5;font-weight:700;}
+
+  #gpanel{display:none;}
+  #gpanel.on{display:block;}
+  .tgl{flex:1;min-width:64px;background:var(--surface);border:1px solid var(--line);
+    color:var(--text-dim);border-radius:10px;padding:9px 0;font-size:13px;
+    text-align:center;cursor:pointer;user-select:none;}
+  .tgl.active{color:var(--text);border-color:var(--text-dim);font-weight:600;}
+
+  .calbox{background:var(--surface);border:1px solid var(--line);
+    border-radius:10px;padding:4px 14px 8px;margin-bottom:10px;}
+  .calbox summary{font-size:13px;color:var(--text-dim);padding:8px 0;cursor:pointer;
+    list-style-position:inside;}
+  .calbox label{display:block;font-size:12.5px;color:var(--text-dim);margin:4px 0 12px;}
+  .calbox output{float:right;color:var(--text);
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  .calbox input[type=range]{width:100%;accent-color:var(--text);margin-top:6px;height:24px;}
+
+  footer{font-size:11.5px;color:var(--text-dim);line-height:1.7;padding:4px 2px;}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 3px 0 8px;vertical-align:-1px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="seal">合</div>
+  <div class="title-block">
+    <h1>三合鏡</h1>
+    <div class="subtitle">外三合を映す鏡 — 肩胯・肘膝・手足</div>
+  </div>
+</header>
+
+<div class="seg" id="modeSeg">
+  <button data-m="single" class="active">単体</button>
+  <button data-m="compare">比較(2画面)</button>
+</div>
+
+<div id="singleHost"></div>
+<div id="compareHost" style="display:none"></div>
+
+<div id="gpanel">
+  <div class="row">
+    <div class="seg" id="speedSeg" style="flex:1">
+      <button data-s="1" class="active">1×</button>
+      <button data-s="0.5">0.5×</button>
+      <button data-s="0.25">0.25×</button>
+    </div>
+  </div>
+  <div class="row" id="toggles" style="flex-wrap:wrap">
+    <div class="tgl active" data-k="left">左側</div>
+    <div class="tgl active" data-k="right">右側</div>
+    <div class="tgl active" data-k="skeleton">骨格</div>
+    <div class="tgl active" data-k="center">中定線</div>
+    <div class="tgl active" data-k="level">水平線</div>
+  </div>
+  <details class="calbox">
+    <summary>調整 — 基準点(肩窩・胯)</summary>
+    <label>肩点の内寄せ(肩窩へ) <output id="vShIn"></output>
+      <input type="range" id="shIn" min="0" max="30"></label>
+    <label>胯点の内寄せ(骨盤の奥へ) <output id="vKuaIn"></output>
+      <input type="range" id="kuaIn" min="0" max="40"></label>
+    <label>胯点の沈み <output id="vKuaDown"></output>
+      <input type="range" id="kuaDown" min="0" max="12"></label>
+  </details>
+  <details class="calbox">
+    <summary>調整 — 判定のしきい値(胴長比)</summary>
+    <label>緑↔黄の境 <output id="vThGood"></output>
+      <input type="range" id="thGood" min="10" max="60"></label>
+    <label>黄↔赤の境 <output id="vThMid"></output>
+      <input type="range" id="thMid" min="30" max="100"></label>
+  </details>
+</div>
+
+<footer>
+  線の色は目安です<span class="legend"><i style="background:var(--good)"></i>揃う<i style="background:var(--mid)"></i>注意<i style="background:var(--bad)"></i>大きなズレ</span>。
+  正面または真横からの撮影が最も判定しやすくなります。数値を比べるときは同じ角度で撮った動画同士で。
+  比較モードは処理を軽くするため軽量AIを使うので、点の精度がわずかに下がります。動画はどちらのモードでも端末の外に送信されません。
+</footer>
+
+<script type="module">
+import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+const $ = id => document.getElementById(id);
+
+/* ---- landmarks & pairs ---- */
+const IDX = {
+  left:  { shoulder:11, elbow:13, wrist:15, hip:23, knee:25, ankle:27 },
+  right: { shoulder:12, elbow:14, wrist:16, hip:24, knee:26, ankle:28 },
+};
+const PAIRS = [
+  { key:"sh", label:"肩胯", a:"shoulder", b:"hip"   },
+  { key:"el", label:"肘膝", a:"elbow",    b:"knee"  },
+  { key:"wr", label:"手足", a:"wrist",    b:"ankle" },
+];
+const TILT_GOOD = 4, TILT_MID = 8;
+
+const CSS = getComputedStyle(document.documentElement);
+const C = {
+  good: CSS.getPropertyValue("--good").trim(),
+  mid:  CSS.getPropertyValue("--mid").trim(),
+  bad:  CSS.getPropertyValue("--bad").trim(),
+  dim:  "rgba(236,231,219,.28)",
+};
+
+const state = { left:true, right:true, skeleton:true, center:true, level:true };
+
+/* ---- calibration & thresholds (共有・保存) ---- */
+function loadCal() {
+  const d = { shIn:0.12, kuaIn:0.22, kuaDown:0.05, thGood:0.28, thMid:0.55 };
+  try { return Object.assign(d, JSON.parse(localStorage.getItem("sangokyo-cal")||"{}")); }
+  catch { return d; }
+}
+const cal = loadCal();
+function saveCal() {
+  try { localStorage.setItem("sangokyo-cal", JSON.stringify(cal)); } catch {}
+}
+const ratioColor = r => r < cal.thGood ? C.good : r < cal.thMid ? C.mid : C.bad;
+
+/* ---- shared geometry ---- */
+const mid2 = (a,b) => [(a[0]+b[0])/2,(a[1]+b[1])/2];
+function pxOf(lm, i, W, H){ const p = lm[i]; return [p.x*W, p.y*H]; }
+function torsoLen(lm, W, H){
+  const s = mid2(pxOf(lm,11,W,H), pxOf(lm,12,W,H));
+  const h = mid2(pxOf(lm,23,W,H), pxOf(lm,24,W,H));
+  return Math.max(1, Math.hypot(s[0]-h[0], s[1]-h[1]));
+}
+function pairPoints(lm, W, H, side, p) {
+  let a = pxOf(lm, IDX[side][p.a], W, H), b = pxOf(lm, IDX[side][p.b], W, H);
+  if (p.key === "sh") {
+    const ms = mid2(pxOf(lm,11,W,H), pxOf(lm,12,W,H));
+    const mh = mid2(pxOf(lm,23,W,H), pxOf(lm,24,W,H));
+    const t = torsoLen(lm, W, H);
+    a = [ a[0] + (ms[0]-a[0])*cal.shIn,  a[1] + (ms[1]-a[1])*cal.shIn ];
+    b = [ b[0] + (mh[0]-b[0])*cal.kuaIn, b[1] + (mh[1]-b[1])*cal.kuaIn + t*cal.kuaDown ];
+  }
+  return [a, b];
+}
+function pairRatio(lm, W, H, side, p) {
+  const [a, b] = pairPoints(lm, W, H, side, p);
+  return Math.abs(a[0]-b[0]) / torsoLen(lm, W, H);
+}
+
+const BONES = [
+  [11,12],[23,24],[11,13],[13,15],[12,14],[14,16],
+  [11,23],[12,24],[23,25],[25,27],[24,26],[26,28],
+];
+function drawOverlay(ctx, W, H, lm) {
+  const w = Math.max(2, W/360);
+  if (state.skeleton) {
+    ctx.strokeStyle = C.dim; ctx.lineWidth = w; ctx.lineCap = "round";
+    for (const [i,j] of BONES) {
+      const a = pxOf(lm,i,W,H), b = pxOf(lm,j,W,H);
+      ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+    }
+  }
+  if (state.center) {
+    const s = mid2(pxOf(lm,11,W,H), pxOf(lm,12,W,H));
+    const h = mid2(pxOf(lm,23,W,H), pxOf(lm,24,W,H));
+    const tilt = Math.abs(Math.atan2(h[0]-s[0], h[1]-s[1]) * 180/Math.PI);
+    ctx.strokeStyle = tilt < TILT_GOOD ? C.good : tilt < TILT_MID ? C.mid : C.bad;
+    ctx.lineWidth = w; ctx.setLineDash([w*3, w*3]);
+    const dx = h[0]-s[0], dy = h[1]-s[1];
+    ctx.beginPath();
+    ctx.moveTo(s[0]-dx*0.7, s[1]-dy*0.7);
+    ctx.lineTo(h[0]+dx*0.7, h[1]+dy*0.7);
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  if (state.level) {
+    for (const [i,j] of [[11,12],[23,24]]) {
+      const a = pxOf(lm,i,W,H), b = pxOf(lm,j,W,H);
+      const tilt = Math.abs(Math.atan2(b[1]-a[1], b[0]-a[0]) * 180/Math.PI);
+      const t = Math.min(tilt, 180-tilt);   /* 水平からのズレ */
+      ctx.strokeStyle = t < TILT_GOOD ? C.good : t < TILT_MID ? C.mid : C.bad;
+      ctx.lineWidth = w; ctx.setLineDash([w*3, w*3]);
+      const dx = b[0]-a[0], dy = b[1]-a[1];
+      ctx.beginPath();
+      ctx.moveTo(a[0]-dx*0.25, a[1]-dy*0.25);
+      ctx.lineTo(b[0]+dx*0.25, b[1]+dy*0.25);
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+  for (const side of ["left","right"]) {
+    if (!state[side]) continue;
+    for (const p of PAIRS) {
+      const [a, b] = pairPoints(lm, W, H, side, p);
+      const col = ratioColor(pairRatio(lm, W, H, side, p));
+      ctx.strokeStyle = col; ctx.lineWidth = w*1.8;
+      ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+      ctx.fillStyle = col;
+      for (const pt of [a,b]) {
+        ctx.beginPath(); ctx.arc(pt[0],pt[1],w*2.4,0,Math.PI*2); ctx.fill();
+      }
+    }
+  }
+}
+
+/* ---- model loading ---- */
+const MODEL_URL = {
+  full: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task",
+  lite: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+};
+let filesetP = null;
+function getFileset() {
+  if (!filesetP) filesetP = FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+  return filesetP;
+}
+async function makeLandmarker(kind) {
+  const fs = await getFileset();
+  const opts = d => ({ baseOptions:{ modelAssetPath:MODEL_URL[kind], delegate:d },
+    runningMode:"VIDEO", numPoses:1 });
+  try { return await PoseLandmarker.createFromOptions(fs, opts("GPU")); }
+  catch { return await PoseLandmarker.createFromOptions(fs, opts("CPU")); }
+}
+
+/* ---- player factory ---- */
+const players = [];
+let anyLoaded = false;
+
+function panelHTML(label) {
+  return `
+  <div class="pane">
+    ${label ? `<div class="plabel">${label}</div>` : ""}
+    <div class="psetup">
+      <div class="pstatus">動画を選んでください</div>
+      <label class="file-btn">動画を選ぶ<input type="file" class="file" accept="video/*"></label>
+    </div>
+    <div class="stage">
+      <video playsinline muted preload="metadata"></video>
+      <canvas></canvas>
+    </div>
+    <div class="chips"></div>
+    <div class="transport">
+      <input type="range" class="seek" min="0" max="0" step="0.01" value="0">
+      <div class="timecode"><span class="tcur">0:00.0</span> / <span class="tdur">0:00.0</span></div>
+      <div class="row">
+        <button class="ctl stepBack">−1コマ</button>
+        <button class="ctl play">▶ 再生</button>
+        <button class="ctl stepFwd">＋1コマ</button>
+        <button class="ctl mute" style="flex:.55">🔇</button>
+        <button class="ctl refile" style="flex:.8">変更</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function fmt(t) {
+  t = t || 0;
+  const m = Math.floor(t/60), s = (t%60).toFixed(1).padStart(4,"0");
+  return `${m}:${s}`;
+}
+
+function createPlayer(host, label, modelKind) {
+  host.insertAdjacentHTML("beforeend", panelHTML(label));
+  const root = host.lastElementChild;
+  const q = sel => root.querySelector(sel);
+  const video = q("video"), canvas = q("canvas"), ctx = canvas.getContext("2d");
+  const seek = q(".seek"), tcur = q(".tcur"), tdur = q(".tdur");
+  const playBtn = q(".play"), statusEl = q(".pstatus");
+
+  /* chips: 左/右のグループに3対ずつ */
+  const chipsEl = q(".chips"), chipRefs = {}, grpRefs = {};
+  for (const side of ["left","right"]) {
+    const grp = document.createElement("div");
+    grp.className = "chipgrp";
+    grp.innerHTML = `<div class="glabel">${side==="left"?"左":"右"}</div><div class="grow"></div>`;
+    const row = grp.querySelector(".grow");
+    for (const p of PAIRS) {
+      const el = document.createElement("div");
+      el.className = "chip";
+      el.innerHTML = `<div class="lab"><span class="dot"></span>${p.label}</div>
+        <div class="num">—</div>`;
+      row.appendChild(el);
+      chipRefs[side+p.key] = { dot: el.querySelector(".dot"), num: el.querySelector(".num") };
+    }
+    chipsEl.appendChild(grp);
+    grpRefs[side] = grp;
+  }
+
+  const P = { video, landmarker:null, ready:false, lm:null, scrubbing:false };
+
+  async function ensureModel() {
+    if (P.landmarker || P.loading) return;
+    P.loading = true;
+    statusEl.textContent = "AIモデルを読み込んでいます…";
+    try {
+      P.landmarker = await makeLandmarker(modelKind);
+      P.ready = true;
+    } catch (e) {
+      statusEl.textContent = "モデルの読み込みに失敗しました。通信環境を確認して再読み込みしてください。";
+      console.error(e);
+    }
+    P.loading = false;
+  }
+
+  function updateChips() {
+    for (const side of ["left","right"]) {
+      grpRefs[side].style.opacity = state[side] ? 1 : .3;
+      for (const p of PAIRS) {
+        const ref = chipRefs[side+p.key];
+        if (!P.lm) { ref.num.textContent = "—"; ref.dot.style.background = "var(--text-dim)"; continue; }
+        const r = pairRatio(P.lm, canvas.width, canvas.height, side, p);
+        ref.num.textContent = r.toFixed(2);
+        ref.dot.style.background = ratioColor(r);
+      }
+    }
+  }
+  function redraw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if (P.lm) drawOverlay(ctx, canvas.width, canvas.height, P.lm);
+    updateChips();
+  }
+  function detect() {
+    if (!P.ready || video.readyState < 2) return;
+    try {
+      const res = P.landmarker.detectForVideo(video, performance.now());
+      P.lm = (res.landmarks && res.landmarks[0]) ? res.landmarks[0] : null;
+    } catch {}
+    redraw();
+  }
+  function syncSeek() {
+    if (!P.scrubbing) seek.value = video.currentTime;
+    tcur.textContent = fmt(video.currentTime);
+  }
+  function setPlayLabel() {
+    playBtn.textContent = (video.paused||video.ended) ? "▶ 再生" : "❚❚ 停止";
+  }
+  function loop() {
+    detect(); syncSeek();
+    if (!video.paused && !video.ended) {
+      if ("requestVideoFrameCallback" in video) video.requestVideoFrameCallback(loop);
+      else requestAnimationFrame(loop);
+    } else setPlayLabel();
+  }
+
+  q(".file").addEventListener("change", e => {
+    const f = e.target.files[0]; if (!f) return;
+    ensureModel();
+    video.src = URL.createObjectURL(f); video.load();
+  });
+  video.addEventListener("loadedmetadata", () => {
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    seek.max = video.duration; tdur.textContent = fmt(video.duration);
+    q(".psetup").style.display = "none";
+    q(".stage").classList.add("on");
+    chipsEl.classList.add("on");
+    q(".transport").classList.add("on");
+    if (!anyLoaded) { anyLoaded = true; $("gpanel").classList.add("on"); }
+    requestAnimationFrame(detect);
+  });
+  video.addEventListener("seeked", () => { requestAnimationFrame(detect); syncSeek(); });
+  video.addEventListener("canplay", () => { if (P.ready) requestAnimationFrame(detect); });
+
+  playBtn.addEventListener("click", async () => {
+    if (video.paused || video.ended) { await ensureModel(); await video.play(); loop(); }
+    else video.pause();
+    setPlayLabel();
+  });
+  const FRAME = 1/30;
+  q(".stepBack").addEventListener("click", () => step(-FRAME));
+  q(".stepFwd").addEventListener("click", () => step(+FRAME));
+  function step(d) {
+    video.pause(); setPlayLabel();
+    video.currentTime = Math.min(Math.max(0, video.currentTime + d), video.duration||0);
+  }
+  seek.addEventListener("input", () => {
+    P.scrubbing = true;
+    video.pause(); setPlayLabel();
+    video.currentTime = parseFloat(seek.value);
+  });
+  seek.addEventListener("change", () => { P.scrubbing = false; });
+  q(".mute").addEventListener("click", () => {
+    video.muted = !video.muted;
+    q(".mute").textContent = video.muted ? "🔇" : "🔊";
+  });
+  q(".refile").addEventListener("click", () => { q(".file").value = ""; q(".file").click(); });
+
+  const player = { video, redraw, pause(){ video.pause(); setPlayLabel(); } };
+  players.push(player);
+  return player;
+}
+
+/* ---- build modes ---- */
+createPlayer($("singleHost"), null, "full");
+createPlayer($("compareHost"), "先 生", "lite");
+createPlayer($("compareHost"), "自 分", "lite");
+
+$("modeSeg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const m = b.dataset.m;
+  for (const x of $("modeSeg").children) x.classList.toggle("active", x===b);
+  $("singleHost").style.display  = m === "single"  ? "" : "none";
+  $("compareHost").style.display = m === "compare" ? "" : "none";
+  for (const p of players) p.pause();
+});
+
+/* ---- global controls ---- */
+$("speedSeg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const s = parseFloat(b.dataset.s);
+  for (const x of $("speedSeg").children) x.classList.toggle("active", x===b);
+  for (const p of players) p.video.playbackRate = s;
+});
+$("toggles").addEventListener("click", e => {
+  const t = e.target.closest(".tgl"); if (!t) return;
+  const k = t.dataset.k;
+  state[k] = !state[k];
+  t.classList.toggle("active", state[k]);
+  for (const p of players) p.redraw();
+});
+
+/* ---- calibration & threshold sliders ---- */
+const SLIDERS = [
+  ["shIn","vShIn","pct"], ["kuaIn","vKuaIn","pct"], ["kuaDown","vKuaDown","pct"],
+  ["thGood","vThGood","ratio"], ["thMid","vThMid","ratio"],
+];
+for (const [k, out, kind] of SLIDERS) {
+  const el = $(k);
+  const show = () => $(out).textContent = kind==="pct" ? el.value+"%" : (el.value/100).toFixed(2);
+  el.value = Math.round(cal[k]*100);
+  show();
+  el.addEventListener("input", () => {
+    cal[k] = el.value/100;
+    show(); saveCal();
+    for (const p of players) p.redraw();
+  });
+}
+</script>
+</body>
+</html>
