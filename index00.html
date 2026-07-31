@@ -133,13 +133,6 @@
 <div id="compareHost" style="display:none"></div>
 
 <div id="gpanel">
-  <div class="row" id="toggles" style="flex-wrap:wrap">
-    <div class="tgl active" data-k="left">左側</div>
-    <div class="tgl active" data-k="right">右側</div>
-    <div class="tgl active" data-k="skeleton">骨格</div>
-    <div class="tgl active" data-k="center">中定線</div>
-    <div class="tgl active" data-k="level">水平線</div>
-  </div>
   <details class="calbox">
     <summary>調整 — 基準点(肩窩・胯)</summary>
     <label>肩点の内寄せ(肩窩へ) <output id="vShIn"></output>
@@ -335,6 +328,13 @@ function panelHTML(label) {
         <button class="ctl refile" style="flex:.7">変更</button>
       </div>
     </div>
+    <div class="row toggles" style="flex-wrap:wrap">
+      <div class="tgl active" data-k="left">左側</div>
+      <div class="tgl active" data-k="right">右側</div>
+      <div class="tgl active" data-k="skeleton">骨格</div>
+      <div class="tgl active" data-k="center">中定線</div>
+      <div class="tgl active" data-k="level">水平線</div>
+    </div>
     <div class="chips"></div>
   </div>`;
 }
@@ -508,10 +508,24 @@ function createPlayer(host, label, modelKind) {
   });
   document.addEventListener("click", () => speedMenu.classList.remove("on"));
 
-  const player = { video, redraw, pause(){ video.pause(); setPlayLabel(); } };
+  const togRow = q(".toggles");
+  togRow.addEventListener("click", e => {
+    const t = e.target.closest(".tgl"); if (!t) return;
+    const k = t.dataset.k;
+    state[k] = !state[k];
+    syncToggles();
+    for (const p of players) p.redraw();
+  });
+  function syncOwnToggles() {
+    for (const t of togRow.querySelectorAll(".tgl"))
+      t.classList.toggle("active", state[t.dataset.k]);
+  }
+
+  const player = { video, redraw, syncOwnToggles, pause(){ video.pause(); setPlayLabel(); } };
   players.push(player);
   return player;
 }
+function syncToggles() { for (const p of players) p.syncOwnToggles(); }
 
 /* ---- build modes ---- */
 createPlayer($("singleHost"), null, "full");
@@ -525,15 +539,6 @@ $("modeSeg").addEventListener("click", e => {
   $("singleHost").style.display  = m === "single"  ? "" : "none";
   $("compareHost").style.display = m === "compare" ? "" : "none";
   for (const p of players) p.pause();
-});
-
-/* ---- global controls ---- */
-$("toggles").addEventListener("click", e => {
-  const t = e.target.closest(".tgl"); if (!t) return;
-  const k = t.dataset.k;
-  state[k] = !state[k];
-  t.classList.toggle("active", state[k]);
-  for (const p of players) p.redraw();
 });
 
 /* ---- calibration & threshold sliders ---- */
