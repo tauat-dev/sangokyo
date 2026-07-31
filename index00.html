@@ -31,6 +31,9 @@
     background:linear-gradient(var(--text-dim),transparent);}
   h1{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
     font-size:22px;font-weight:600;letter-spacing:.14em;}
+  h1 .ver{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:11px;font-weight:400;letter-spacing:.05em;color:var(--text-dim);
+    vertical-align:middle;margin-left:4px;}
   .subtitle{font-size:11.5px;color:var(--text-dim);letter-spacing:.06em;}
 
   .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
@@ -108,7 +111,7 @@
 <header>
   <div class="seal">合</div>
   <div class="title-block">
-    <h1>三合鏡</h1>
+    <h1>三合鏡 <span class="ver">ver 1.1</span></h1>
     <div class="subtitle">外三合を映す鏡 — 肩胯・肘膝・手足</div>
   </div>
 </header>
@@ -122,13 +125,6 @@
 <div id="compareHost" style="display:none"></div>
 
 <div id="gpanel">
-  <div class="row">
-    <div class="seg" id="speedSeg" style="flex:1">
-      <button data-s="1" class="active">1×</button>
-      <button data-s="0.5">0.5×</button>
-      <button data-s="0.25">0.25×</button>
-    </div>
-  </div>
   <div class="row" id="toggles" style="flex-wrap:wrap">
     <div class="tgl active" data-k="left">左側</div>
     <div class="tgl active" data-k="right">右側</div>
@@ -322,6 +318,13 @@ function panelHTML(label) {
         <button class="ctl mute" style="flex:.55">🔇</button>
         <button class="ctl refile" style="flex:.8">変更</button>
       </div>
+      <div class="row">
+        <div class="seg speedSeg" style="flex:1">
+          <button data-s="1" class="active">1×</button>
+          <button data-s="0.5">0.5×</button>
+          <button data-s="0.25">0.25×</button>
+        </div>
+      </div>
     </div>
     <div class="chips"></div>
   </div>`;
@@ -482,6 +485,12 @@ function createPlayer(host, label, modelKind) {
     q(".mute").textContent = video.muted ? "🔇" : "🔊";
   });
   q(".refile").addEventListener("click", () => { q(".file").value = ""; q(".file").click(); });
+  const speedSeg = q(".speedSeg");
+  speedSeg.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    video.playbackRate = parseFloat(b.dataset.s);
+    for (const x of speedSeg.children) x.classList.toggle("active", x===b);
+  });
 
   const player = { video, redraw, pause(){ video.pause(); setPlayLabel(); } };
   players.push(player);
@@ -503,12 +512,6 @@ $("modeSeg").addEventListener("click", e => {
 });
 
 /* ---- global controls ---- */
-$("speedSeg").addEventListener("click", e => {
-  const b = e.target.closest("button"); if (!b) return;
-  const s = parseFloat(b.dataset.s);
-  for (const x of $("speedSeg").children) x.classList.toggle("active", x===b);
-  for (const p of players) p.video.playbackRate = s;
-});
 $("toggles").addEventListener("click", e => {
   const t = e.target.closest(".tgl"); if (!t) return;
   const k = t.dataset.k;
