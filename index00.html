@@ -84,7 +84,15 @@
   .ctl{background:var(--surface);border:1px solid var(--line);color:var(--text);
     border-radius:10px;font-size:14px;padding:10px 0;flex:1;cursor:pointer;}
   .ctl:active{background:var(--line);}
-  .ctl.play{flex:1.5;font-weight:700;}
+  .ctl.play{font-weight:700;font-size:15px;}
+  .speedMenu{display:none;position:absolute;bottom:calc(100% + 4px);left:0;right:0;
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    overflow:hidden;z-index:10;box-shadow:0 6px 16px rgba(0,0,0,.5);}
+  .speedMenu.on{display:block;}
+  .speedMenu button{display:block;width:100%;background:none;border:none;
+    color:var(--text-dim);padding:10px 0;font-size:14px;cursor:pointer;}
+  .speedMenu button.active{color:var(--text);font-weight:700;background:var(--line);}
+  .speedBtn{padding:10px 0;}
 
   #gpanel{display:none;}
   #gpanel.on{display:block;}
@@ -312,18 +320,19 @@ function panelHTML(label) {
       <input type="range" class="seek" min="0" max="0" step="0.01" value="0">
       <div class="timecode"><span class="tcur">0:00.0</span> / <span class="tdur">0:00.0</span></div>
       <div class="row">
-        <button class="ctl stepBack">−1コマ</button>
-        <button class="ctl play">▶ 再生</button>
-        <button class="ctl stepFwd">＋1コマ</button>
-        <button class="ctl mute" style="flex:.55">🔇</button>
-        <button class="ctl refile" style="flex:.8">変更</button>
-      </div>
-      <div class="row">
-        <div class="seg speedSeg" style="flex:1">
-          <button data-s="1" class="active">1×</button>
-          <button data-s="0.5">0.5×</button>
-          <button data-s="0.25">0.25×</button>
+        <button class="ctl stepBack" style="flex:.8">−1</button>
+        <button class="ctl play" style="flex:1.1">▶</button>
+        <button class="ctl stepFwd" style="flex:.8">＋1</button>
+        <div class="speedWrap" style="flex:.9;position:relative">
+          <button class="ctl speedBtn" style="width:100%">1×</button>
+          <div class="speedMenu">
+            <button data-s="1" class="active">1×</button>
+            <button data-s="0.5">0.5×</button>
+            <button data-s="0.25">0.25×</button>
+          </div>
         </div>
+        <button class="ctl mute" style="flex:.5">🔇</button>
+        <button class="ctl refile" style="flex:.7">変更</button>
       </div>
     </div>
     <div class="chips"></div>
@@ -434,7 +443,7 @@ function createPlayer(host, label, modelKind) {
     tcur.textContent = fmt(video.currentTime);
   }
   function setPlayLabel() {
-    playBtn.textContent = (video.paused||video.ended) ? "▶ 再生" : "❚❚ 停止";
+    playBtn.textContent = (video.paused||video.ended) ? "▶" : "❚❚";
   }
   function loop() {
     detect(); syncSeek();
@@ -485,12 +494,19 @@ function createPlayer(host, label, modelKind) {
     q(".mute").textContent = video.muted ? "🔇" : "🔊";
   });
   q(".refile").addEventListener("click", () => { q(".file").value = ""; q(".file").click(); });
-  const speedSeg = q(".speedSeg");
-  speedSeg.addEventListener("click", e => {
+  const speedBtn = q(".speedBtn"), speedMenu = q(".speedMenu");
+  speedBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    speedMenu.classList.toggle("on");
+  });
+  speedMenu.addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
     video.playbackRate = parseFloat(b.dataset.s);
-    for (const x of speedSeg.children) x.classList.toggle("active", x===b);
+    speedBtn.textContent = b.textContent;
+    for (const x of speedMenu.children) x.classList.toggle("active", x===b);
+    speedMenu.classList.remove("on");
   });
+  document.addEventListener("click", () => speedMenu.classList.remove("on"));
 
   const player = { video, redraw, pause(){ video.pause(); setPlayLabel(); } };
   players.push(player);
