@@ -31,6 +31,9 @@
     background:linear-gradient(var(--text-dim),transparent);}
   h1{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
     font-size:22px;font-weight:600;letter-spacing:.14em;}
+  h1 .ver{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:11px;font-weight:400;letter-spacing:.05em;color:var(--text-dim);
+    vertical-align:middle;margin-left:4px;}
   .subtitle{font-size:11.5px;color:var(--text-dim);letter-spacing:.06em;}
 
   .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
@@ -58,9 +61,9 @@
   #singleHost .stage.on{position:sticky;top:8px;z-index:5;
     box-shadow:0 8px 20px rgba(0,0,0,.5);}
 
-  .chips{display:none;gap:8px;margin-bottom:10px;}
+  .chips{display:none;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
   .chips.on{display:flex;}
-  .chipgrp{flex:1;min-width:0;}
+  .chipgrp{flex:1;min-width:calc(50% - 4px);}
   .chipgrp .glabel{font-size:10px;color:var(--text-dim);letter-spacing:.3em;
     text-align:center;margin-bottom:3px;}
   .chipgrp .grow{display:flex;gap:4px;}
@@ -81,7 +84,15 @@
   .ctl{background:var(--surface);border:1px solid var(--line);color:var(--text);
     border-radius:10px;font-size:14px;padding:10px 0;flex:1;cursor:pointer;}
   .ctl:active{background:var(--line);}
-  .ctl.play{flex:1.5;font-weight:700;}
+  .ctl.play{font-weight:700;font-size:15px;}
+  .speedMenu{display:none;position:absolute;bottom:calc(100% + 4px);left:0;right:0;
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    overflow:hidden;z-index:10;box-shadow:0 6px 16px rgba(0,0,0,.5);}
+  .speedMenu.on{display:block;}
+  .speedMenu button{display:block;width:100%;background:none;border:none;
+    color:var(--text-dim);padding:10px 0;font-size:14px;cursor:pointer;}
+  .speedMenu button.active{color:var(--text);font-weight:700;background:var(--line);}
+  .speedBtn{padding:10px 0;}
 
   #gpanel{display:none;}
   #gpanel.on{display:block;}
@@ -108,7 +119,7 @@
 <header>
   <div class="seal">合</div>
   <div class="title-block">
-    <h1>三合鏡</h1>
+    <h1>三合鏡 <span class="ver">ver 1.1</span></h1>
     <div class="subtitle">外三合を映す鏡 — 肩胯・肘膝・手足</div>
   </div>
 </header>
@@ -122,19 +133,6 @@
 <div id="compareHost" style="display:none"></div>
 
 <div id="gpanel">
-  <div class="row">
-    <div class="seg" id="speedSeg" style="flex:1">
-      <button data-s="1" class="active">1×</button>
-      <button data-s="0.5">0.5×</button>
-      <button data-s="0.25">0.25×</button>
-    </div>
-  </div>
-  <div class="row" id="toggles">
-    <div class="tgl active" data-k="left">左側</div>
-    <div class="tgl active" data-k="right">右側</div>
-    <div class="tgl active" data-k="skeleton">骨格</div>
-    <div class="tgl active" data-k="center">中定線</div>
-  </div>
   <details class="calbox">
     <summary>調整 — 基準点(肩窩・胯)</summary>
     <label>肩点の内寄せ(肩窩へ) <output id="vShIn"></output>
@@ -184,7 +182,7 @@ const C = {
   dim:  "rgba(236,231,219,.28)",
 };
 
-const state = { left:true, right:true, skeleton:true, center:true };
+const state = { left:true, right:true, skeleton:true, center:true, level:true };
 
 /* ---- calibration & thresholds (共有・保存) ---- */
 function loadCal() {
@@ -247,6 +245,20 @@ function drawOverlay(ctx, W, H, lm) {
     ctx.lineTo(h[0]+dx*0.7, h[1]+dy*0.7);
     ctx.stroke(); ctx.setLineDash([]);
   }
+  if (state.level) {
+    for (const [i,j] of [[11,12],[23,24]]) {
+      const a = pxOf(lm,i,W,H), b = pxOf(lm,j,W,H);
+      const tilt = Math.abs(Math.atan2(b[1]-a[1], b[0]-a[0]) * 180/Math.PI);
+      const t = Math.min(tilt, 180-tilt);   /* 水平からのズレ */
+      ctx.strokeStyle = t < TILT_GOOD ? C.good : t < TILT_MID ? C.mid : C.bad;
+      ctx.lineWidth = w; ctx.setLineDash([w*3, w*3]);
+      const dx = b[0]-a[0], dy = b[1]-a[1];
+      ctx.beginPath();
+      ctx.moveTo(a[0]-dx*0.25, a[1]-dy*0.25);
+      ctx.lineTo(b[0]+dx*0.25, b[1]+dy*0.25);
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
   for (const side of ["left","right"]) {
     if (!state[side]) continue;
     for (const p of PAIRS) {
@@ -297,18 +309,33 @@ function panelHTML(label) {
       <video playsinline muted preload="metadata"></video>
       <canvas></canvas>
     </div>
-    <div class="chips"></div>
     <div class="transport">
       <input type="range" class="seek" min="0" max="0" step="0.01" value="0">
       <div class="timecode"><span class="tcur">0:00.0</span> / <span class="tdur">0:00.0</span></div>
       <div class="row">
-        <button class="ctl stepBack">−1コマ</button>
-        <button class="ctl play">▶ 再生</button>
-        <button class="ctl stepFwd">＋1コマ</button>
-        <button class="ctl mute" style="flex:.55">🔇</button>
-        <button class="ctl refile" style="flex:.8">変更</button>
+        <button class="ctl stepBack" style="flex:.8">−1</button>
+        <button class="ctl play" style="flex:1.1">▶</button>
+        <button class="ctl stepFwd" style="flex:.8">＋1</button>
+        <div class="speedWrap" style="flex:.9;position:relative">
+          <button class="ctl speedBtn" style="width:100%">1×</button>
+          <div class="speedMenu">
+            <button data-s="1" class="active">1×</button>
+            <button data-s="0.5">0.5×</button>
+            <button data-s="0.25">0.25×</button>
+          </div>
+        </div>
+        <button class="ctl mute" style="flex:.5">🔇</button>
+        <button class="ctl refile" style="flex:.7">変更</button>
       </div>
     </div>
+    <div class="row toggles" style="flex-wrap:wrap">
+      <div class="tgl active" data-k="left">左側</div>
+      <div class="tgl active" data-k="right">右側</div>
+      <div class="tgl active" data-k="skeleton">骨格</div>
+      <div class="tgl active" data-k="center">中定線</div>
+      <div class="tgl active" data-k="level">水平線</div>
+    </div>
+    <div class="chips"></div>
   </div>`;
 }
 
@@ -344,6 +371,20 @@ function createPlayer(host, label, modelKind) {
     chipsEl.appendChild(grp);
     grpRefs[side] = grp;
   }
+  /* 水平線の傾き(度) */
+  const lvlGrp = document.createElement("div");
+  lvlGrp.className = "chipgrp";
+  lvlGrp.innerHTML = `<div class="glabel">水平</div><div class="grow"></div>`;
+  const lvlRow = lvlGrp.querySelector(".grow");
+  const lvlRefs = {};
+  for (const [key,label] of [["sh","肩"],["hip","胯"]]) {
+    const el = document.createElement("div");
+    el.className = "chip";
+    el.innerHTML = `<div class="lab"><span class="dot"></span>${label}</div><div class="num">—</div>`;
+    lvlRow.appendChild(el);
+    lvlRefs[key] = { dot: el.querySelector(".dot"), num: el.querySelector(".num") };
+  }
+  chipsEl.appendChild(lvlGrp);
 
   const P = { video, landmarker:null, ready:false, lm:null, scrubbing:false };
 
@@ -372,6 +413,17 @@ function createPlayer(host, label, modelKind) {
         ref.dot.style.background = ratioColor(r);
       }
     }
+    lvlGrp.style.opacity = state.level ? 1 : .3;
+    const W = canvas.width, H = canvas.height;
+    for (const [key,i,j] of [["sh",11,12],["hip",23,24]]) {
+      const ref = lvlRefs[key];
+      if (!P.lm) { ref.num.textContent = "—"; ref.dot.style.background = "var(--text-dim)"; continue; }
+      const a = pxOf(P.lm,i,W,H), b = pxOf(P.lm,j,W,H);
+      const raw = Math.abs(Math.atan2(b[1]-a[1], b[0]-a[0]) * 180/Math.PI);
+      const t = Math.min(raw, 180-raw);
+      ref.num.textContent = t.toFixed(0) + "°";
+      ref.dot.style.background = t < TILT_GOOD ? C.good : t < TILT_MID ? C.mid : C.bad;
+    }
   }
   function redraw() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -391,7 +443,7 @@ function createPlayer(host, label, modelKind) {
     tcur.textContent = fmt(video.currentTime);
   }
   function setPlayLabel() {
-    playBtn.textContent = (video.paused||video.ended) ? "▶ 再生" : "❚❚ 停止";
+    playBtn.textContent = (video.paused||video.ended) ? "▶" : "❚❚";
   }
   function loop() {
     detect(); syncSeek();
@@ -442,11 +494,38 @@ function createPlayer(host, label, modelKind) {
     q(".mute").textContent = video.muted ? "🔇" : "🔊";
   });
   q(".refile").addEventListener("click", () => { q(".file").value = ""; q(".file").click(); });
+  const speedBtn = q(".speedBtn"), speedMenu = q(".speedMenu");
+  speedBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    speedMenu.classList.toggle("on");
+  });
+  speedMenu.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    video.playbackRate = parseFloat(b.dataset.s);
+    speedBtn.textContent = b.textContent;
+    for (const x of speedMenu.children) x.classList.toggle("active", x===b);
+    speedMenu.classList.remove("on");
+  });
+  document.addEventListener("click", () => speedMenu.classList.remove("on"));
 
-  const player = { video, redraw, pause(){ video.pause(); setPlayLabel(); } };
+  const togRow = q(".toggles");
+  togRow.addEventListener("click", e => {
+    const t = e.target.closest(".tgl"); if (!t) return;
+    const k = t.dataset.k;
+    state[k] = !state[k];
+    syncToggles();
+    for (const p of players) p.redraw();
+  });
+  function syncOwnToggles() {
+    for (const t of togRow.querySelectorAll(".tgl"))
+      t.classList.toggle("active", state[t.dataset.k]);
+  }
+
+  const player = { video, redraw, syncOwnToggles, pause(){ video.pause(); setPlayLabel(); } };
   players.push(player);
   return player;
 }
+function syncToggles() { for (const p of players) p.syncOwnToggles(); }
 
 /* ---- build modes ---- */
 createPlayer($("singleHost"), null, "full");
@@ -460,21 +539,6 @@ $("modeSeg").addEventListener("click", e => {
   $("singleHost").style.display  = m === "single"  ? "" : "none";
   $("compareHost").style.display = m === "compare" ? "" : "none";
   for (const p of players) p.pause();
-});
-
-/* ---- global controls ---- */
-$("speedSeg").addEventListener("click", e => {
-  const b = e.target.closest("button"); if (!b) return;
-  const s = parseFloat(b.dataset.s);
-  for (const x of $("speedSeg").children) x.classList.toggle("active", x===b);
-  for (const p of players) p.video.playbackRate = s;
-});
-$("toggles").addEventListener("click", e => {
-  const t = e.target.closest(".tgl"); if (!t) return;
-  const k = t.dataset.k;
-  state[k] = !state[k];
-  t.classList.toggle("active", state[k]);
-  for (const p of players) p.redraw();
 });
 
 /* ---- calibration & threshold sliders ---- */
